@@ -1,8 +1,27 @@
 import { GyazoAPIError } from "./errors";
 
-export async function ensureSuccess<T>(response: Response): Promise<T> {
+interface ParsedResponse<T> {
+  headers: Record<string, string>;
+  data: T;
+}
+
+export async function ensureSuccess<T>(
+  response: Response
+): Promise<ParsedResponse<T>> {
   if (!response.ok) {
     throw await GyazoAPIError.fromResponse(response);
   }
-  return response.json() as Promise<T>;
+  const data: T = await response.json();
+  const headers = Array.from(response.headers.entries()).reduce<
+    Record<string, string>
+  >((acc, [key, value]) => {
+    const k = key.toLowerCase();
+    acc[k] = value;
+    return acc;
+  }, {});
+
+  return {
+    data,
+    headers,
+  };
 }
