@@ -8,9 +8,20 @@ export interface ListImagesInput {
   per_page?: number;
 }
 
+export interface ListImagesOutput {
+  totalCount?: string;
+  currentPage?: string;
+  perPage?: string;
+  userType?: string;
+  images: ReadonlyArray<GyazoImage>;
+}
+
 export const ListImagesCommand = (
-  input: ListImagesInput = {}
-): GyazoCommand<ReadonlyArray<GyazoImage>> => {
+  input: ListImagesInput = {
+    page: 1,
+    per_page: 20,
+  }
+): GyazoCommand<ListImagesOutput> => {
   return async (context) => {
     const url = context.createApiURL("/api/images");
 
@@ -25,6 +36,16 @@ export const ListImagesCommand = (
       },
     });
 
-    return ensureSuccess<ReadonlyArray<GyazoImage>>(response);
+    const { headers, data } = await ensureSuccess<ReadonlyArray<GyazoImage>>(
+      response
+    );
+
+    return {
+      images: data,
+      totalCount: headers["x-total-count"],
+      currentPage: headers["x-current-page"],
+      perPage: headers["x-per-page"],
+      userType: headers["x-user-type"],
+    } satisfies ListImagesOutput;
   };
 };
