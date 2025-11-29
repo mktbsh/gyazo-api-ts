@@ -1,0 +1,28 @@
+{
+	"name": "@mktbsh/gyazo-api",
+	"version": "0.0.0",
+	"private": true,
+	"description": "A simple example library built by tsdown",
+	"type": "module",
+	"files": [
+		"dist"
+	],
+	"main": "./dist/index.mjs",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": "./dist/index.mjs",
+		"./package.json": "./package.json"
+	},
+	"scripts": {
+		"build": "tsdown",
+		"dev": "tsdown --watch",
+		"lint": "biome check .",
+		"format": "biome check . --write"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.8",
+		"tsdown": "^0.16.6",
+		"typescript": "^5.9.3"
+	}
+}
