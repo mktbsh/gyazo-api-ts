@@ -1,170 +1,185 @@
 # @mktbsh/gyazo-api
 
-Modern, Type-Safe, Universal Gyazo API Client for TypeScript & JavaScript.
+A type-safe, zero-dependency Gyazo API client for TypeScript and JavaScript.
 
-Node.js (v18+) とブラウザの両方で動作する、依存関係ゼロの Gyazo API クライアントです。 AWS SDK v3 のような関数型アーキテクチャを採用しており、Tree-shaking に対応しています。また、Rust ライクな Result 型による安全なエラーハンドリングを提供します。
+- Node.js 20+ and modern browsers
+- Web-standard `fetch`, `FormData`, and `Blob`
+- Typed `Result` values for API, validation, timeout, and network errors
+- Direct client methods and a backwards-compatible command API
+- AbortSignal and configurable request timeouts
 
-## 特徴
-
-- Universal: Node.js (v18+) とモダンブラウザの両方で動作（Web 標準 API を使用）。
-
-- Zero Dependencies: axios や form-data などの外部依存パッケージは一切ありません。
-
-- Functional API: クラスを使わない関数ベースの設計。AWS SDK v3 のように client.send(Command) スタイルで記述します。
-
-- Result Type: try-catch 不要。戻り値の ok プロパティで成功/失敗を型安全に分岐できます。
-
-## インストール
-
-`npm`
-
-```sh
-npm install @mktbsh/gyazo-api
-```
-
-`npm`
-
-```sh
-npm install @mktbsh/gyazo-api
-```
-
-`yarn`
-
-```sh
-yarn add @mktbsh/gyazo-api
-```
-
-`pnpm`
+## Installation
 
 ```sh
 pnpm add @mktbsh/gyazo-api
 ```
 
-`bun`
+The package is ESM-only.
 
-```sh
-bun add @mktbsh/gyazo-api
-```
+## Authentication
 
-## クイックスタート
-
-### 画像のアップロード
+Create an access token from the [Gyazo API dashboard](https://gyazo.com/oauth/applications), then pass it to the client. Do not expose a personal access token in browser code distributed to other users.
 
 ```ts
-import { createGyazoClient, UploadImageCommand } from "@mktbsh/gyazo-api";
+import { createGyazoClient } from "@mktbsh/gyazo-api";
 
-// 1. クライアントの作成
-const client = createGyazoClient({
-  accessToken: process.env.GYAZO_ACCESS_TOKEN,
-});
+const accessToken = process.env.GYAZO_ACCESS_TOKEN;
+if (!accessToken) throw new Error("GYAZO_ACCESS_TOKEN is required");
 
-async function main() {
-  // Node.jsの場合: BufferなどをBlobに変換
-  // ブラウザの場合: <input type="file"> の File オブジェクトをそのまま渡せます
-  const blob = new Blob(["Hello Gyazo!"], { type: "text/plain" });
-
-  // 2. コマンドの送信
-  const result = await client.send(
-    UploadImageCommand({
-      image: blob,
-      filename: "sample.png",
-      title: "My Upload",
-    })
-  );
-
-  // 3. Result型によるハンドリング
-  if (result.ok) {
-    console.log("Upload Success:", result.value.permalink_url);
-  } else {
-    console.error("Upload Failed:", result.error.message);
-  }
-}
-
-main();
+const gyazo = createGyazoClient({ accessToken });
 ```
 
-## エラーハンドリング (Result Pattern)
+An empty token, invalid timeout, or invalid endpoint URL throws `GyazoValidationError` while creating the client.
 
-このライブラリは try-catch を強制しません。client.send() は常に Result<T, E> 型を返します。
+## Direct API
+
+### List images
 
 ```ts
-import { createGyazoClient, ListImagesCommand } from "@mktbsh/gyazo-api";
-
-const result = await client.send(ListImagesCommand());
+const result = await gyazo.images.list({ page: 1, perPage: 20 });
 
 if (result.ok) {
-  // result.value は APIのレスポンスデータ (GyazoImage[])
-  console.log(`Fetched ${result.value.length} images.`);
-} else {
-  // result.error は Error または GyazoApiError
-  if (result.error instanceof GyazoApiError) {
-    console.error(
-      `API Error: ${result.error.status} ${result.error.statusText}`
-    );
+  console.log(result.value.images);
+  console.log(result.value.totalCount);
+}
+```
+
+### Get an image
+
+```ts
+const result = await gyazo.images.get("IMAGE_ID");
+```
+
+### Upload an image
+
+```ts
+import { readFile } from "node:fs/promises";
+
+const bytes = await readFile("screenshot.png");
+const image = new Blob([bytes], { type: "image/png" });
+
+const result = await gyazo.images.upload({
+  image,
+  filename: "screenshot.png",
+  accessPolicy: "only_me",
+  title: "CLI upload",
+});
+
+if (result.ok) console.log(result.value.permalink_url);
+```
+
+`createdAt` is optional and is only sent when explicitly provided.
+
+### Delete an image
+
+```ts
+const result = await gyazo.images.delete("IMAGE_ID");
+```
+
+### Search images
+
+```ts
+const result = await gyazo.images.search({
+  query: "architecture diagram",
+  page: 1,
+  per: 20,
+});
+```
+
+Gyazo's Search API is available to Pro users. A non-Pro response is returned as a `GyazoAPIError` with `isProRequired === true`.
+
+### Get the current user
+
+```ts
+const result = await gyazo.users.me();
+```
+
+### Get oEmbed data
+
+```ts
+const result = await gyazo.oEmbed.get({
+  url: "https://gyazo.com/IMAGE_ID",
+});
+```
+
+## Error handling
+
+Every request method returns `GyazoResult<T, GyazoClientError>`.
+
+```ts
+import { GyazoAPIError } from "@mktbsh/gyazo-api";
+
+const result = await gyazo.images.list();
+
+if (!result.ok) {
+  if (result.error instanceof GyazoAPIError) {
+    console.error(result.error.status, result.error.message);
+
+    if (result.error.isAuthenticationError) console.error("Invalid token");
+    if (result.error.isProRequired) console.error("Gyazo Pro is required");
+    if (result.error.isRateLimited) console.error("Rate limit exceeded");
   } else {
-    console.error("Network or Unknown Error:", result.error);
+    console.error(result.error.kind, result.error.message);
   }
 }
 ```
 
-## Configuration
+Possible `kind` values are `api`, `validation`, `timeout`, `abort`, `network`, `response`, and `unknown`.
 
-タイムアウトを設定する
+## Cancellation and timeout
+
+The default timeout is 10 seconds. Set `timeout: 0` to disable it.
 
 ```ts
-const client = createGyazoClient({
-  accessToken: "YOUR_TOKEN",
-
-  // タイムアウト (ミリ秒)
-  timeout: 5000,
+const gyazo = createGyazoClient({
+  accessToken,
+  timeout: 5_000,
 });
+
+const controller = new AbortController();
+const result = await gyazo.images.list({ signal: controller.signal });
+controller.abort();
 ```
 
-## API コマンド一覧
+The timeout and caller-provided signal are both enforced.
 
-`UploadImageCommand`
+## Command API
 
-画像をアップロードします。
+The existing command API remains available.
 
 ```ts
-await client.send(
-  UploadImageCommand({
-    image: Blob | File, // 必須
-    filename: string, // 必須
-    title: string,
-    desc: string,
-    referer_url: string,
-    collection_id: string,
-    created_at: number,
-  })
+import {
+  createGyazoClient,
+  ListImagesCommand,
+  UploadImageCommand,
+} from "@mktbsh/gyazo-api";
+
+const list = await gyazo.send(ListImagesCommand({ perPage: 20 }));
+const upload = await gyazo.send(
+  UploadImageCommand({ image, filename: "screenshot.png" }),
 );
 ```
 
-`ListImagesCommand`
+Available commands:
 
-アップロードした画像の一覧を取得します。
+- `ListImagesCommand`
+- `GetImageCommand`
+- `UploadImageCommand`
+- `DeleteImageCommand`
+- `SearchImagesCommand`
+- `GetCurrentUserCommand`
+- `GetOEmbedCommand`
 
-```ts
-await client.send(
-  ListImagesCommand({
-    page: number, // デフォルト: 1
-    per_page: number, // デフォルト: 20 (Max 100)
-  })
-);
+The old `imageID`, `per_page`, `access_policy`, `metadata_is_public`, `referer_url`, `created_at`, and `collection_id` input names remain supported but are deprecated. New code should use camelCase names.
+
+## Development
+
+```sh
+bun install --frozen-lockfile
+bun run check
 ```
 
-`DeleteImageCommand`
-
-画像を削除します。
-
-```ts
-await client.send(DeleteImageCommand("IMAGE_ID"));
-```
-
-## 要件
-
-- Node.js: v18.0.0 以上 (Global fetch / FormData / Blob 対応のため)
-- Browser: Modern Browsers (Chrome, Firefox, Safari, Edge)
+`check` runs formatting and lint checks, strict TypeScript checks, coverage tests, the build, package metadata validation, and a packed-tarball consumer test.
 
 ## License
 

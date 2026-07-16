@@ -1,8 +1,11 @@
-export { createGyazoClient } from "./client";
-export type { GyazoCommand } from "./command";
+export { createGyazoClient, type GyazoClient } from "./client";
+export type { GyazoCommand, GyazoRequestOptions } from "./command";
 export * from "./commands/DeleteImageCommand";
+export * from "./commands/GetCurrentUserCommand";
 export * from "./commands/GetImageCommand";
+export * from "./commands/GetOEmbedCommand";
 export * from "./commands/ListImagesCommand";
+export * from "./commands/SearchImagesCommand";
 export * from "./commands/UploadImageCommand";
 export type { GyazoClientConfig } from "./context";
 export * from "./errors";

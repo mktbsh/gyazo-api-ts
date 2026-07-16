@@ -1,28 +1,29 @@
-import type { GyazoCommand } from "../command";
+import type { GyazoCommand, GyazoRequestOptions } from "../command";
 import type { GyazoImage } from "../types";
-import { ensureSuccess } from "../utils";
+import { assertNonEmpty, ensureSuccess } from "../utils";
 
-export interface GetImageInput {
-  imageID: string;
-}
+export type GetImageInput = GyazoRequestOptions &
+  (
+    | { imageId: string; imageID?: never }
+    | { /** @deprecated Use imageId. */ imageID: string; imageId?: never }
+  );
 
 export type GetImageOutput = GyazoImage;
 
 export const GetImageCommand = (
-  input: GetImageInput
+  input: GetImageInput,
 ): GyazoCommand<GetImageOutput> => {
   return async (context) => {
-    const url = context.createApiURL(`/api/images/${input.imageID}`);
+    const imageId = input.imageId ?? input.imageID;
+    assertNonEmpty(imageId, "imageId");
+    const url = context.createApiURL(
+      `/api/images/${encodeURIComponent(imageId)}`,
+    );
+    const init: RequestInit = { method: "GET" };
+    if (input.signal) init.signal = input.signal;
 
-    const response = await context.fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${context.accessToken}`,
-      },
-    });
-
+    const response = await context.request(url, init);
     const { data } = await ensureSuccess<GyazoImage>(response);
-
     return data;
   };
 };

@@ -1,83 +1,81 @@
-import { GyazoCommand } from "../command";
-import { ensureSuccess } from "../utils";
+import type { GyazoCommand, GyazoRequestOptions } from "../command";
+import type { GyazoAccessPolicy, GyazoUpload } from "../types";
+import { assertNonEmpty, ensureSuccess } from "../utils";
 
-export interface UploadImageInput {
+export interface UploadImageInput extends GyazoRequestOptions {
   image: Blob;
   filename: string;
-  /**
-   * @default "anyone"
-   */
-  access_policy?: "anyone" | "only_me";
-  /**
-   * URLやタイトルなどのメタデータを公開するか否かの真偽値の文字列
-   */
+  accessPolicy?: GyazoAccessPolicy;
+  /** @deprecated Use accessPolicy. */
+  access_policy?: GyazoAccessPolicy;
+  metadataIsPublic?: boolean;
+  /** @deprecated Use metadataIsPublic. */
   metadata_is_public?: boolean;
-  /**
-   * キャプチャをしたサイトのURL
-   */
+  refererUrl?: string;
+  /** @deprecated Use refererUrl. */
   referer_url?: string;
-  /**
-   * キャプチャをしたアプリケーション名
-   */
   app?: string;
-  /**
-   * キャプチャをしたサイトのタイトル
-   */
   title?: string;
-  /**
-   * 任意のコメント
-   */
   desc?: string;
-  /**
-   * 画像の作られた日時（Unix time）
-   * @default Date.now() / 1000
-   */
+  createdAt?: number;
+  /** @deprecated Use createdAt. */
   created_at?: number;
-  /**
-   * ユーザーが所有している/参加しているコレクションにのみ追加できます
-   */
+  collectionId?: string;
+  /** @deprecated Use collectionId. */
   collection_id?: string;
 }
 
-export interface UploadImageOutput {
-  image_id: string;
-  permalink_url: string;
-  thumb_url: string;
-  url: string;
-  type: string;
-}
+export type UploadImageOutput = GyazoUpload;
 
 export const UploadImageCommand = (
-  input: UploadImageInput
+  input: UploadImageInput,
 ): GyazoCommand<UploadImageOutput> => {
   return async (context) => {
+    assertNonEmpty(input.filename, "filename");
     const url = context.createUploadURL("/api/upload");
-
     const formData = new FormData();
     formData.set("imagedata", input.image, input.filename);
-    formData.set("access_policy", input.access_policy || "anyone");
-    formData.set(
-      "created_at",
-      Math.floor(input.created_at || Date.now() / 1000).toString()
+
+    setIfDefined(
+      formData,
+      "access_policy",
+      input.accessPolicy ?? input.access_policy,
     );
-    if (input.metadata_is_public !== undefined) {
-      formData.set("metadata_is_public", String(input.metadata_is_public));
+    const metadataIsPublic = input.metadataIsPublic ?? input.metadata_is_public;
+    if (metadataIsPublic !== undefined) {
+      formData.set("metadata_is_public", String(metadataIsPublic));
     }
-    if (input.referer_url) formData.set("referer_url", input.referer_url);
-    if (input.app) formData.set("app", input.app);
-    if (input.title) formData.set("title", input.title);
-    if (input.desc) formData.set("desc", input.desc);
-    if (input.collection_id) formData.set("collection_id", input.collection_id);
+    setIfDefined(
+      formData,
+      "referer_url",
+      input.refererUrl ?? input.referer_url,
+    );
+    setIfDefined(formData, "app", input.app);
+    setIfDefined(formData, "title", input.title);
+    setIfDefined(formData, "desc", input.desc);
+    setIfDefined(
+      formData,
+      "collection_id",
+      input.collectionId ?? input.collection_id,
+    );
 
-    const response = await context.fetch(url, {
-      method: "POST",
-      body: formData,
-      headers: {
-        Authorization: `Bearer ${context.accessToken}`,
-      },
-    });
+    const createdAt = input.createdAt ?? input.created_at;
+    if (createdAt !== undefined) {
+      formData.set("created_at", Math.floor(createdAt).toString());
+    }
+
+    const init: RequestInit = { method: "POST", body: formData };
+    if (input.signal) init.signal = input.signal;
+    const response = await context.request(url, init);
     const { data } = await ensureSuccess<UploadImageOutput>(response);
-
     return data;
   };
 };
+
+function setIfDefined(
+  formData: FormData,
+  name: string,
+  value: string | undefined,
+): void {
+  if (value !== undefined) formData.set(name, value);
+}

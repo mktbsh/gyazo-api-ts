@@ -1,51 +1,56 @@
-import type { GyazoCommand } from "../command";
+import type { GyazoCommand, GyazoRequestOptions } from "../command";
 import type { GyazoImage } from "../types";
-import { ensureSuccess } from "../utils";
+import {
+  assertPage,
+  assertPerPage,
+  ensureSuccess,
+  optionalIntegerHeader,
+} from "../utils";
 
-export interface ListImagesInput {
+export interface ListImagesInput extends GyazoRequestOptions {
   page?: number;
-  /** 1 - 100 */
+  perPage?: number;
+  /** @deprecated Use perPage. */
   per_page?: number;
 }
 
 export interface ListImagesOutput {
-  totalCount?: string;
-  currentPage?: string;
-  perPage?: string;
+  totalCount?: number;
+  currentPage?: number;
+  perPage?: number;
   userType?: string;
   images: ReadonlyArray<GyazoImage>;
 }
 
 export const ListImagesCommand = (
-  input: ListImagesInput = {
-    page: 1,
-    per_page: 20,
-  }
+  input: ListImagesInput = {},
 ): GyazoCommand<ListImagesOutput> => {
   return async (context) => {
+    const page = input.page ?? 1;
+    const perPage = input.perPage ?? input.per_page ?? 20;
+    assertPage(page);
+    assertPerPage(perPage, "perPage");
+
     const url = context.createApiURL("/api/images");
+    url.searchParams.set("page", page.toString());
+    url.searchParams.set("per_page", perPage.toString());
+    const init: RequestInit = { method: "GET" };
+    if (input.signal) init.signal = input.signal;
 
-    const params = url.searchParams;
-    if (input.page) params.append("page", input.page.toString());
-    if (input.per_page) params.append("per_page", input.per_page.toString());
-
-    const response = await context.fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${context.accessToken}`,
-      },
-    });
-
-    const { headers, data } = await ensureSuccess<ReadonlyArray<GyazoImage>>(
-      response
-    );
+    const response = await context.request(url, init);
+    const { headers, data } =
+      await ensureSuccess<ReadonlyArray<GyazoImage>>(response);
+    const totalCount = optionalIntegerHeader(headers, "x-total-count");
+    const currentPage = optionalIntegerHeader(headers, "x-current-page");
+    const responsePerPage = optionalIntegerHeader(headers, "x-per-page");
+    const userType = headers["x-user-type"];
 
     return {
       images: data,
-      totalCount: headers["x-total-count"],
-      currentPage: headers["x-current-page"],
-      perPage: headers["x-per-page"],
-      userType: headers["x-user-type"],
-    } satisfies ListImagesOutput;
+      ...(totalCount === undefined ? {} : { totalCount }),
+      ...(currentPage === undefined ? {} : { currentPage }),
+      ...(responsePerPage === undefined ? {} : { perPage: responsePerPage }),
+      ...(userType === undefined ? {} : { userType }),
+    };
   };
 };

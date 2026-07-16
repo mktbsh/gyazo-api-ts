@@ -1,30 +1,32 @@
-import type { GyazoCommand } from "../command";
-import { ensureSuccess } from "../utils";
+import type { GyazoCommand, GyazoRequestOptions } from "../command";
+import type { GyazoImageType } from "../types";
+import { assertNonEmpty, ensureSuccess } from "../utils";
 
-export interface DeleteImageInput {
-  imageID: string;
-}
+export type DeleteImageInput = GyazoRequestOptions &
+  (
+    | { imageId: string; imageID?: never }
+    | { /** @deprecated Use imageId. */ imageID: string; imageId?: never }
+  );
 
 export interface DeleteImageOutput {
   image_id: string;
-  type: string;
+  type: GyazoImageType;
 }
 
 export const DeleteImageCommand = (
-  input: DeleteImageInput
+  input: DeleteImageInput,
 ): GyazoCommand<DeleteImageOutput> => {
   return async (context) => {
-    const url = context.createApiURL(`/api/images/${input.imageID}`);
+    const imageId = input.imageId ?? input.imageID;
+    assertNonEmpty(imageId, "imageId");
+    const url = context.createApiURL(
+      `/api/images/${encodeURIComponent(imageId)}`,
+    );
+    const init: RequestInit = { method: "DELETE" };
+    if (input.signal) init.signal = input.signal;
 
-    const response = await context.fetch(url, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${context.accessToken}`,
-      },
-    });
-
+    const response = await context.request(url, init);
     const { data } = await ensureSuccess<DeleteImageOutput>(response);
-
     return data;
   };
 };
