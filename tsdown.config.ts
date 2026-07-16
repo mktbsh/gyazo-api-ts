@@ -1,7 +1,20 @@
 import { defineConfig } from "tsdown";
 
 export default defineConfig({
-  exports: true,
-  minify: false,
+  entry: ["src/index.ts"],
+  outDir: "dist",
+  target: "es2022",
+  format: "esm",
+  outExtensions() {
+    return {
+      js: ".mjs",
+      dts: ".d.mts",
+    };
+  },
+  clean: true,
+  dts: true,
+  treeshake: true,
   sourcemap: true,
+  minify: false,
+  exports: true,
 });
