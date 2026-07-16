@@ -35,7 +35,11 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
-    ".": "./dist/index.mjs",
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -46,14 +50,20 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "lint": "biome check .",
-    "format": "biome check . --write",
+    "lint:fix": "biome check . --write",
+    "format": "biome format . --write",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:consumer": "node scripts/test-tarball.mjs",
     "pack:lint": "bun run build && node scripts/check-package.mjs",
+    "changeset": "bunx --bun @changesets/cli@2.30.0",
+    "version-packages": "bunx --bun @changesets/cli@2.30.0 version",
+    "release": "bunx --bun @changesets/cli@2.30.0 publish",
     "check": "bun run lint && bun run typecheck && bun run test:coverage && bun run build && bun run pack:lint && bun run test:consumer",
-    "prepack": "bun run build"
+    "prepack": "bun run build",
+    "prepublishOnly": "bun run check"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
