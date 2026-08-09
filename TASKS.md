@@ -20,3 +20,7 @@ date: 2026-08-09T21:56:53+09:00
 - [x] T13: Linux arm64/x64 native build と release asset を追加する（blocked by T12）
 - [x] T14: `install.sh` と実行 smoke check を追加する（blocked by T13）
 - [x] T15: Linux 対応 Formula、release workflow、配布文書を検証する（blocked by T14）
+- [x] T16: Changesets fixed group と CLI version 同期を追加する（blocked by T15）
+- [x] T17: 両 npm package の OIDC publish workflow を作る（blocked by T16）
+- [x] T18: 4 platform binary を単一 GitHub Release へ添付する（blocked by T17）
+- [x] T19: Changesets、tarball、native、workflow を検証する（blocked by T18）

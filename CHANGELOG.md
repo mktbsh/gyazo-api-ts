@@ -6,6 +6,5 @@
 - Rebuild the SDK on `@hsblabs/http-command` in a pnpm workspace.
 - Add the `gyazoctl` command-line package.
 - Add scriptc-based macOS/Linux arm64/x64 native builds for `gyazoctl`.
-- Add npm, GitHub Release, and `mktbsh/homebrew-tap` release automation.
-- Add a checksum-verifying native installer for macOS and Linux.
+- Add Changesets-based npm OIDC and GitHub Release automation.
 - Add `uploadImageBytes` for runtimes without FormData and Blob.

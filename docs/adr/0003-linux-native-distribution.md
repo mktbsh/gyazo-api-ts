@@ -3,6 +3,7 @@ title: Build Linux native releases on matching runners
 date: 2026-08-09T23:48:24+09:00
 status: accepted
 agent: OpenAI Codex GPT-5
+amended_by: 0004-changesets-release.md
 ---
 
 # Build Linux native releases on matching runners

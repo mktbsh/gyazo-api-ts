@@ -1,6 +1,7 @@
 ---
 title: gyazo-api-sdk rebuild specification
 date: 2026-08-09T21:56:53+09:00
+updated: 2026-08-10T08:37:18+09:00
 status: accepted
 ---
 
@@ -8,7 +9,7 @@ status: accepted
 
 ## Goal
 
-未公開の `@mktbsh/gyazo-api` を `gyazo-api-sdk` へ改名し、`@hsblabs/http-command` の scoped command protocol を使う pnpm workspace として再構築する。Phase 2 で `gyazoctl` を同じ workspace に追加し、Phase 3 で npm と Homebrew の配布経路を作る。
+未公開の `@mktbsh/gyazo-api` を `gyazo-api-sdk` へ改名し、`@hsblabs/http-command` の scoped command protocol を使う pnpm workspace として再構築する。Phase 2 で `gyazoctl` を同じ workspace に追加し、Phase 3 で npm と GitHub Releases の配布経路を作る。
 
 ## Phase 1: SDK
 
@@ -27,16 +28,16 @@ status: accepted
 - 成功結果は JSON で標準出力へ、エラーは標準エラー出力へ出し、失敗時は終了コード 1 とする。
 - 引数解析は依存を追加せず、Node.js と native binary の両方で同じ parser を使う。
 
-## Phase 3: native distribution
+## Phase 3: Changesets release
 
 - `scriptc --dynamic` で `gyazoctl` の TypeScript source から macOS/Linux arm64/x64 native executable を作る。
 - native executable は Node.js を要求せず、npm CLI と同じ command、環境変数、stdout/stderr、終了コードを保つ。
 - GitHub Release asset は `gyazoctl-{darwin,linux}-{arm64,x64}.tar.gz` とし、各 archive 内の executable 名は `gyazoctl` に統一する。
-- `install.sh` は OS/architecture に対応する GitHub Release asset と checksum を取得・検証し、`~/.local/bin` または `GYAZOCTL_INSTALL_DIR` へ native executable を導入する。
-- npm では `gyazo-api-sdk` と `gyazoctl` を公開し、`npx gyazoctl` を提供する。
-- `mktbsh/homebrew-tap` の `Formula/gyazoctl.rb` を release workflow から更新し、`brew install mktbsh/tap/gyazoctl` を提供する。
+- Changesets fixed group で `gyazo-api-sdk` と `gyazoctl` を同時に versioning し、npm へ公開する。
+- npm publish は GitHub Actions Trusted Publishing の OIDC だけを使う。
+- 両 package の npm publish 後、同じ version の `v*` GitHub Release に4 platformのarchiveとchecksumを添付する。
 - tag、両 package version、native binary version は一致させる。
-- npm Trusted Publisher または `NPM_TOKEN` と、tap 更新用 `HOMEBREW_TAP_TOKEN` を公開前提とする。
+- install script と Homebrew Formula は scope 外とする。
 
 ## Acceptance
 
@@ -45,7 +46,8 @@ status: accepted
 - `pnpm run check:native` が成功し、scriptc coverage に blocker が残らない。
 - 両パッケージの tarball が作成でき、`publint` と `attw` を通る。
 - npm tarball の `npx gyazoctl` と native binary の help、version、引数検証、削除 safety check が成功する。
-- release workflow が 2 OS/2 architecture の archive/checksum、npm publish、GitHub Release、Homebrew Formula 更新を順に実行する。
-- macOS/Linux arm64/x64 の各 release job で `install.sh` による導入と binary version の一致を検証する。
+- Changesets が両 package を同じ version に更新し、SDK、CLI の順に OIDC publish する。
+- release workflow が macOS/Linux arm64/x64 のarchive/checksumを同じ `v*` GitHub Releaseへ添付する。
+- 途中失敗の再実行では公開済みnpm versionを再publishせず、不足するRelease assetを補完する。
 
-公開用 workflow と Formula template の作成は範囲内とする。tag 作成、push、npm/GitHub/Homebrew への実公開は別の明示操作とする。
+公開用 workflow の作成は範囲内とする。push、npm、GitHub Releases への実公開は別の明示操作とする。

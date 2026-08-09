@@ -11,19 +11,7 @@ npx gyazoctl --help
 pnpm add --global gyazoctl
 ```
 
-Homebrew（macOS/Linux、native binary）:
-
-```sh
-brew install mktbsh/tap/gyazoctl
-```
-
-Install script（macOS/Linux、native binary）:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/mktbsh/gyazo-api-sdk/main/install.sh | sh
-```
-
-既定の導入先は `~/.local/bin` です。version は `GYAZOCTL_VERSION`、導入先は `GYAZOCTL_INSTALL_DIR` で指定できます。
+Node.jsを必要としないmacOS/Linux arm64/x64 binaryは[GitHub Releases](https://github.com/mktbsh/gyazo-api-sdk/releases)で配布します。
 
 ## Authentication
 

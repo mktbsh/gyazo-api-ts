@@ -1,6 +1,7 @@
 ---
 title: Release gyazo-api-sdk and gyazoctl
 date: 2026-08-09T22:48:44+09:00
+updated: 2026-08-10T08:37:18+09:00
 ---
 
 # Release gyazo-api-sdk and gyazoctl
@@ -8,25 +9,24 @@ date: 2026-08-09T22:48:44+09:00
 ## One-time setup
 
 1. npm の `gyazo-api-sdk` と `gyazoctl` に GitHub Actions Trusted Publisher を設定する。repository は `mktbsh/gyazo-api-sdk`、workflow filename は `release.yml` とする。
-2. 初回 publish で Trusted Publisher を設定できない package には、repository secret `NPM_TOKEN` を設定する。Trusted Publisher へ移行後は削除できる。
-3. `mktbsh/homebrew-tap` へ Contents read/write できる fine-grained token を repository secret `HOMEBREW_TAP_TOKEN` に設定する。
+2. npm に未登録の `gyazo-api-sdk` は `0.1.0` より低いversionでpackage recordを作り、Trusted Publisherを設定する。初回登録はownerの2FAを使う一度限りの操作とし、GitHub Actionsへnpm tokenは保存しない。
+3. 両packageのTrusted Publisher設定後、repository variable `NPM_TRUSTED_PUBLISHING_ENABLED`を`true`にする。
 
 ## Release
 
-1. `packages/gyazo-api-sdk/package.json`、`packages/gyazoctl/package.json`、CLI の `VERSION` を同じ version に更新する。
-2. `pnpm install --frozen-lockfile`、`pnpm run check`、`pnpm run check:native` を実行する。
-3. 変更を commit/push し、同じ version の `v*` tag を push する。
+1. 公開対象の変更に `pnpm changeset` でchangesetを追加する。
+2. pull requestを`main`へmergeする。
+3. Release workflowが作成または更新する`chore: release packages` pull requestを確認してmergeする。
 
-`release.yml` は検証後に次の順で公開する。
+`release.yml` はversion pull requestのmerge後に次の順で公開する。
 
-1. macOS/Linux arm64/x64 native binary を各 platform の runner で build し、binary version と tag を照合する。
-2. neutral basename `gyazoctl` を architecture 別 tarball にし、SHA-256 checksum を作る。
-3. `gyazo-api-sdk`、`gyazoctl` を npm へ provenance 付きで公開する。
-4. tarball、checksum、`install.sh` を GitHub Release へ公開する。
-5. 4 platform の checksum から `Formula/gyazoctl.rb` を生成し、audit/install/version test 後に `mktbsh/homebrew-tap` へ push する。
+1. Changesets fixed groupが両packageとCLI sourceを同じversionへ更新する。
+2. `gyazo-api-sdk`、`gyazoctl`をnpm Trusted PublishingのOIDCで公開する。
+3. macOS/Linux arm64/x64 native binaryを各platformのrunnerでbuildする。
+4. `gyazoctl-{darwin,linux}-{arm64,x64}.tar.gz`とchecksumを`v*` GitHub Releaseへ公開する。
 
 ## Failure and rollback
 
-Workflow は npm publish が成功するまで GitHub Release と Formula を更新しない。途中失敗は同じ tag の workflow rerun で再開でき、既に存在する npm version は skip される。
+Workflowは両npm packageのversionを確認できるまでnative buildを開始しない。再実行時は公開済みnpm versionを再publishせず、8個のRelease assetが揃っていなければbinary buildから再開する。
 
-公開後に native artifact の問題が判明した場合は GitHub Release を pre-release として明示し、Homebrew Formula を直前の正常 version と checksum へ戻す。`install.sh` は GitHub Release の変更に追従するため、問題 asset は削除せず修正版を新しい version として公開する。npm package は削除せず `npm deprecate` で問題 version を案内する。
+公開後に問題が判明した場合はnpm packageやassetを置換せず、`npm deprecate`で案内して修正版を新しいversionで公開する。

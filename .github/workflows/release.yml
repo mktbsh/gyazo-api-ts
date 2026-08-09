@@ -2,40 +2,95 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  verify:
+  changesets:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
+    outputs:
+      has_changesets: ${{ steps.changesets.outputs.hasChangesets }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.17.0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
+          registry-url: https://registry.npmjs.org
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
-      - name: Check release version
-        env:
-          TAG: ${{ github.ref_name }}
+      - run: pnpm run check:packages
+      - name: Read release version
+        id: version
         run: |
-          version="${TAG#v}"
+          version="$(node -p "require('./packages/gyazoctl/package.json').version")"
           node scripts/check-release-version.mjs "$version"
           test "$(node packages/gyazoctl/dist/index.mjs --version)" = "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Create version PR or publish
+        id: changesets
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        with:
+          commit: "chore: release packages"
+          createGithubReleases: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          publish: ${{ vars.NPM_TRUSTED_PUBLISHING_ENABLED == 'true' && 'pnpm run release' || '' }}
+          title: "chore: release packages"
+          version: pnpm run version-packages
+
+  release_state:
+    needs: changesets
+    if: needs.changesets.outputs.has_changesets == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      should_release: ${{ steps.state.outputs.should_release }}
+    steps:
+      - name: Check published packages and release assets
+        id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.changesets.outputs.version }}
+        run: |
+          for package in gyazo-api-sdk gyazoctl; do
+            if ! npm view "$package@$VERSION" version >/dev/null 2>&1; then
+              echo "should_release=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          assets="$(gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>/dev/null || true)"
+          for os in darwin linux; do
+            for arch in arm64 x64; do
+              for suffix in tar.gz tar.gz.sha256; do
+                if ! grep -qx "gyazoctl-$os-$arch.$suffix" <<< "$assets"; then
+                  echo "should_release=true" >> "$GITHUB_OUTPUT"
+                  exit 0
+                fi
+              done
+            done
+          done
+          echo "should_release=false" >> "$GITHUB_OUTPUT"
 
   native:
-    needs: verify
+    needs: [changesets, release_state]
+    if: needs.release_state.outputs.should_release == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -73,120 +128,51 @@ jobs:
           ARCH: ${{ matrix.arch }}
           EXPECTED_FILE_ARCH: ${{ matrix.file-arch }}
           OS: ${{ matrix.os }}
-          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.changesets.outputs.version }}
         run: |
-          version="${TAG#v}"
+          node scripts/check-release-version.mjs "$VERSION"
           pnpm --filter gyazoctl run check:native
           pnpm --filter gyazoctl run build:native
-          node scripts/native-smoke.mjs packages/gyazoctl/dist/native/gyazoctl "$version"
+          node scripts/native-smoke.mjs packages/gyazoctl/dist/native/gyazoctl "$VERSION"
           file packages/gyazoctl/dist/native/gyazoctl | grep -q "$EXPECTED_FILE_ARCH"
-          mkdir -p .context/release
-          archive=".context/release/gyazoctl-${OS}-${ARCH}.tar.gz"
+          mkdir -p "$RUNNER_TEMP/release"
+          archive="$RUNNER_TEMP/release/gyazoctl-$OS-$ARCH.tar.gz"
           tar -C packages/gyazoctl/dist/native -czf "$archive" gyazoctl
           (
-            cd .context/release
+            cd "$RUNNER_TEMP/release"
             if command -v sha256sum >/dev/null 2>&1; then
-              sha256sum "gyazoctl-${OS}-${ARCH}.tar.gz" > "gyazoctl-${OS}-${ARCH}.tar.gz.sha256"
+              sha256sum "gyazoctl-$OS-$ARCH.tar.gz" > "gyazoctl-$OS-$ARCH.tar.gz.sha256"
             else
-              shasum -a 256 "gyazoctl-${OS}-${ARCH}.tar.gz" > "gyazoctl-${OS}-${ARCH}.tar.gz.sha256"
+              shasum -a 256 "gyazoctl-$OS-$ARCH.tar.gz" > "gyazoctl-$OS-$ARCH.tar.gz.sha256"
             fi
           )
-          sh scripts/install-smoke.sh "$archive" "$version"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
         with:
           name: gyazoctl-${{ matrix.os }}-${{ matrix.arch }}
-          path: .context/release/*
+          path: ${{ runner.temp }}/release/*
           if-no-files-found: error
 
-  publish-npm:
-    needs: verify
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-        with:
-          version: 11.17.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: npm install --global npm@11.5.1
-      - name: Pack and publish npm packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          version="${TAG#v}"
-          node scripts/check-release-version.mjs "$version"
-          mkdir -p .context/npm
-          pnpm --filter gyazo-api-sdk pack --pack-destination "$GITHUB_WORKSPACE/.context/npm"
-          pnpm --filter gyazoctl pack --pack-destination "$GITHUB_WORKSPACE/.context/npm"
-          if ! npm view "gyazo-api-sdk@$version" version >/dev/null 2>&1; then
-            npm publish ".context/npm/gyazo-api-sdk-$version.tgz" --access public --provenance
-          fi
-          if ! npm view "gyazoctl@$version" version >/dev/null 2>&1; then
-            npm publish ".context/npm/gyazoctl-$version.tgz" --access public --provenance
-          fi
-
-  github-release:
-    needs: [native, publish-npm]
+  github_release:
+    needs: [changesets, release_state, native]
+    if: needs.release_state.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v4.3.0
         with:
           pattern: gyazoctl-*
-          path: .context/release
+          path: ${{ runner.temp }}/release
           merge-multiple: true
-      - name: Create GitHub Release
+      - name: Create or repair GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TARGET_SHA: ${{ github.sha }}
+          VERSION: ${{ needs.changesets.outputs.version }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" .context/release/* install.sh --clobber
+          tag="v$VERSION"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" "$RUNNER_TEMP"/release/* --repo "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create "$TAG" .context/release/* install.sh --verify-tag --generate-notes
+            gh release create "$tag" "$RUNNER_TEMP"/release/* --repo "$GITHUB_REPOSITORY" --target "$TARGET_SHA" --title "$tag" --generate-notes
           fi
-
-  homebrew:
-    needs: github-release
-    runs-on: macos-15
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v4.3.0
-        with:
-          pattern: gyazoctl-*
-          path: .context/release
-          merge-multiple: true
-      - name: Render and audit Formula
-        env:
-          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          version="${TAG#v}"
-          darwin_arm64_sha="$(shasum -a 256 .context/release/gyazoctl-darwin-arm64.tar.gz | awk '{print $1}')"
-          darwin_x64_sha="$(shasum -a 256 .context/release/gyazoctl-darwin-x64.tar.gz | awk '{print $1}')"
-          linux_arm64_sha="$(shasum -a 256 .context/release/gyazoctl-linux-arm64.tar.gz | awk '{print $1}')"
-          linux_x64_sha="$(shasum -a 256 .context/release/gyazoctl-linux-x64.tar.gz | awk '{print $1}')"
-          gh auth setup-git
-          gh repo clone mktbsh/homebrew-tap .context/homebrew-tap
-          git -C .context/homebrew-tap config user.name github-actions[bot]
-          git -C .context/homebrew-tap config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          node scripts/render-formula.mjs "$version" "$darwin_arm64_sha" "$darwin_x64_sha" "$linux_arm64_sha" "$linux_x64_sha" .context/homebrew-tap/Formula/gyazoctl.rb
-          git -C .context/homebrew-tap add Formula/gyazoctl.rb
-          if ! git -C .context/homebrew-tap diff --cached --quiet; then
-            git -C .context/homebrew-tap commit -m "gyazoctl $version"
-          fi
-          brew tap mktbsh/tap "$GITHUB_WORKSPACE/.context/homebrew-tap"
-          brew audit --formula --strict mktbsh/tap/gyazoctl
-          brew install mktbsh/tap/gyazoctl
-          test "$(gyazoctl --version)" = "$version"
-          git -C .context/homebrew-tap push origin HEAD:main
