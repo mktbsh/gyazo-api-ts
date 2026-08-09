@@ -39,6 +39,12 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1
 
+  packages/gyazoctl:
+    dependencies:
+      gyazo-api-sdk:
+        specifier: workspace:*
+        version: link:../gyazo-api-sdk
+
 packages:
 
   '@andrewbranch/untar.js@1.0.4':
