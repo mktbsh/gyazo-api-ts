@@ -33,6 +33,8 @@
   },
   "scripts": {
     "build": "tsdown",
+    "build:native": "pnpm --filter gyazo-api-sdk run build && mkdir -p dist/native && MACOSX_DEPLOYMENT_TARGET=13.0 scriptc build src/index.ts --dynamic --no-keep-c -o dist/native/gyazoctl",
+    "check:native": "pnpm --filter gyazo-api-sdk run build && scriptc coverage src/index.ts --dynamic",
     "prepack": "pnpm run build"
   },
   "dependencies": {

@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 
+import { readSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { createInterface } from "node:readline/promises";
 import {
   createGyazoClient,
   deleteImage,
   getCurrentUser,
   getImage,
   getOEmbed,
-  isHttpCommandError,
   listImages,
   searchImages,
-  uploadImage,
+  uploadImageBytes,
 } from "gyazo-api-sdk";
 import { type CliCommand, helpText, parseCli } from "./cli";
 
@@ -21,7 +20,8 @@ const VERSION = "0.1.0";
 async function main(): Promise<void> {
   const command = parseCli(process.argv.slice(2));
   if (command.kind === "help") {
-    process.stdout.write(`${helpText(command.command)}\n`);
+    const helpCommand = "command" in command ? command.command : undefined;
+    process.stdout.write(`${helpText(helpCommand)}\n`);
     return;
   }
   if (command.kind === "version") {
@@ -40,55 +40,57 @@ async function main(): Promise<void> {
 
   const client = createGyazoClient({ accessToken });
   let result: unknown;
-  switch (command.kind) {
-    case "list":
+  if (command.kind === "list") {
+    if (command.page !== undefined && command.perPage !== undefined) {
       result = await client.send(
-        listImages({
-          ...(command.page === undefined ? {} : { page: command.page }),
-          ...(command.perPage === undefined
-            ? {}
-            : { perPage: command.perPage }),
-        }),
+        listImages({ page: command.page, perPage: command.perPage }),
       );
-      break;
-    case "get":
-      result = await client.send(getImage({ imageId: command.imageId }));
-      break;
-    case "upload": {
-      const bytes = await readFile(command.file);
-      result = await client.send(
-        uploadImage({
-          image: new Blob([new Uint8Array(bytes)]),
-          filename: basename(command.file),
-          ...(command.accessPolicy === undefined
-            ? {}
-            : { accessPolicy: command.accessPolicy }),
-          ...(command.title === undefined ? {} : { title: command.title }),
-          ...(command.desc === undefined ? {} : { desc: command.desc }),
-        }),
-      );
-      break;
+    } else if (command.page !== undefined) {
+      result = await client.send(listImages({ page: command.page }));
+    } else if (command.perPage !== undefined) {
+      result = await client.send(listImages({ perPage: command.perPage }));
+    } else {
+      result = await client.send(listImages());
     }
-    case "delete":
-      result = await client.send(deleteImage({ imageId: command.imageId }));
-      break;
-    case "search":
+  } else if (command.kind === "get") {
+    result = await client.send(getImage({ imageId: command.imageId }));
+  } else if (command.kind === "upload") {
+    const bytes = await readFile(command.file);
+    result = await client.send(
+      uploadImageBytes({
+        image: new Uint8Array(bytes),
+        filename: basename(command.file),
+        accessPolicy: command.accessPolicy,
+        title: command.title,
+        desc: command.desc,
+      }),
+    );
+  } else if (command.kind === "delete") {
+    result = await client.send(deleteImage({ imageId: command.imageId }));
+  } else if (command.kind === "search") {
+    if (command.page !== undefined && command.perPage !== undefined) {
       result = await client.send(
         searchImages({
           query: command.query,
-          ...(command.page === undefined ? {} : { page: command.page }),
-          ...(command.perPage === undefined
-            ? {}
-            : { perPage: command.perPage }),
+          page: command.page,
+          perPage: command.perPage,
         }),
       );
-      break;
-    case "me":
-      result = await client.send(getCurrentUser());
-      break;
-    case "oembed":
-      result = await client.send(getOEmbed({ url: command.url }));
-      break;
+    } else if (command.page !== undefined) {
+      result = await client.send(
+        searchImages({ query: command.query, page: command.page }),
+      );
+    } else if (command.perPage !== undefined) {
+      result = await client.send(
+        searchImages({ query: command.query, perPage: command.perPage }),
+      );
+    } else {
+      result = await client.send(searchImages({ query: command.query }));
+    }
+  } else if (command.kind === "me") {
+    result = await client.send(getCurrentUser());
+  } else {
+    result = await client.send(getOEmbed({ url: command.url }));
   }
 
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -102,32 +104,21 @@ async function confirmDelete(
     throw new Error("Deletion requires --yes when stdin is not interactive.");
   }
 
-  const readline = createInterface({
-    input: process.stdin,
-    output: process.stderr,
-  });
-  try {
-    const answer = await readline.question(
-      `Delete image ${command.imageId}? [y/N] `,
-    );
-    if (answer.toLowerCase() === "y" || answer.toLowerCase() === "yes")
-      return true;
-    process.stderr.write("Cancelled.\n");
-    return false;
-  } finally {
-    readline.close();
-  }
+  process.stderr.write(`Delete image ${command.imageId}? [y/N] `);
+  const buffer = Buffer.alloc(16);
+  const length = readSync(0, buffer, 0, buffer.length, null);
+  const answer = buffer.toString("utf8", 0, length).trim().toLowerCase();
+  if (answer === "y" || answer === "yes") return true;
+  process.stderr.write("Cancelled.\n");
+  return false;
 }
 
 main().catch((error: unknown) => {
-  if (isHttpCommandError(error)) {
-    const status = error.status === undefined ? "" : ` (HTTP ${error.status})`;
-    process.stderr.write(`gyazoctl: ${error.message}${status}\n`);
-    if (error.body) process.stderr.write(`${error.body}\n`);
+  if (error instanceof Error) {
+    process.stderr.write(`gyazoctl: ${error.message}\n`);
   } else {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`gyazoctl: ${message}\n`);
-    process.stderr.write("Run 'gyazoctl --help' for usage.\n");
+    process.stderr.write(`gyazoctl: ${String(error)}\n`);
   }
-  process.exitCode = 1;
+  process.stderr.write("Run 'gyazoctl --help' for usage.\n");
+  process.exit(1);
 });

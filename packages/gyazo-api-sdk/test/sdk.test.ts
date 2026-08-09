@@ -9,6 +9,7 @@ import {
   listImages,
   searchImages,
   uploadImage,
+  uploadImageBytes,
 } from "../src";
 
 const image = {
@@ -80,11 +81,19 @@ describe("gyazo-api-sdk", () => {
   });
 
   it("encodes image IDs and routes uploads to the upload host", async () => {
-    const requests: Array<{ url: string; body?: unknown }> = [];
+    const requests: Array<{
+      url: string;
+      body?: unknown;
+      contentType: string | null;
+    }> = [];
     const client = createGyazoClient({
       accessToken: "token",
       handler: async ({ request }) => {
-        requests.push({ url: request.url, body: request.body });
+        requests.push({
+          url: request.url,
+          body: request.body,
+          contentType: new Headers(request.headers).get("content-type"),
+        });
         return {
           response:
             request.method === "POST"
@@ -108,6 +117,13 @@ describe("gyazo-api-sdk", () => {
         metadataIsPublic: false,
       }),
     );
+    await client.send(
+      uploadImageBytes({
+        image: new TextEncoder().encode("image"),
+        filename: "image.png",
+        metadataIsPublic: false,
+      }),
+    );
 
     expect(requests[0]?.url).toBe("https://api.gyazo.com/api/images/a%2Fb");
     expect(requests[1]?.url).toBe("https://upload.gyazo.com/api/upload");
@@ -115,6 +131,18 @@ describe("gyazo-api-sdk", () => {
     const uploadForm = requests[1]?.body;
     if (!(uploadForm instanceof FormData)) throw new Error("Expected FormData");
     expect(uploadForm.get("metadata_is_public")).toBe("false");
+    expect(requests[2]?.url).toBe("https://upload.gyazo.com/api/upload");
+    expect(requests[2]?.contentType).toMatch(
+      /^multipart\/form-data; boundary=----gyazo-/,
+    );
+    const bytesBody = requests[2]?.body;
+    if (!(bytesBody instanceof Uint8Array)) {
+      throw new Error("Expected Uint8Array");
+    }
+    const multipart = new TextDecoder().decode(bytesBody);
+    expect(multipart).toContain('name="imagedata"; filename="image.png"');
+    expect(multipart).toContain("image");
+    expect(multipart).toContain('name="metadata_is_public"\r\n\r\nfalse');
   });
 
   it("validates inputs and service responses at the boundary", async () => {
@@ -257,6 +285,12 @@ describe("gyazo-api-sdk", () => {
     expect(() =>
       uploadImage({ image: new Blob(), filename: "image.png", createdAt: -1 }),
     ).toThrow(RangeError);
+    expect(() =>
+      uploadImageBytes({
+        image: {} as Uint8Array,
+        filename: "image.png",
+      }),
+    ).toThrow(TypeError);
   });
 
   it("rejects foreign command origins before sending credentials", async () => {

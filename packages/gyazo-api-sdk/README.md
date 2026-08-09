@@ -15,6 +15,7 @@ import {
   createGyazoClient,
   listImages,
   uploadImage,
+  uploadImageBytes,
 } from "gyazo-api-sdk";
 
 const client = createGyazoClient({
@@ -29,8 +30,15 @@ const uploaded = await client.send(
     filename: "image.png",
   }),
 );
+
+const uploadedBytes = await client.send(
+  uploadImageBytes({
+    image: new TextEncoder().encode("image"),
+    filename: "image.png",
+  }),
+);
 ```
 
-利用できる command factory は `listImages`、`getImage`、`uploadImage`、`deleteImage`、`searchImages`、`getCurrentUser`、`getOEmbed` です。
+利用できる command factory は `listImages`、`getImage`、`uploadImage`、`uploadImageBytes`、`deleteImage`、`searchImages`、`getCurrentUser`、`getOEmbed` です。`uploadImageBytes` は FormData/Blob を持たない native runtime 向けに、同じ upload API を `Uint8Array` から呼び出します。
 
 リクエスト失敗時は `@hsblabs/http-command` の `HttpCommandError` が throw されます。`isHttpCommandError` もこのパッケージから利用できます。

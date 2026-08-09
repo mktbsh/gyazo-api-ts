@@ -23,6 +23,9 @@ importers:
       publint:
         specifier: 0.3.23
         version: 0.3.23
+      scriptc:
+        specifier: 0.0.23
+        version: 0.0.23
       tsdown:
         specifier: 0.22.14
         version: 0.22.14(@arethetypeswrong/core@0.18.5)(publint@0.3.23)(typescript@7.0.2)
@@ -263,6 +266,12 @@ packages:
 
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
+
+  '@scriptc/compiler@0.0.23':
+    resolution: {integrity: sha512-sTKufnYpKvARLyTL6aU54qjgwg0buk9P52IQtYQHaHksO8+6IPCYObeovflnOHkI+XSRkUY2ewJGKirowUKmwg==}
+
+  '@scriptc/runtime@0.0.23':
+    resolution: {integrity: sha512-EotriD4E/72QaYBxnLF7XCjhzjWiZvbaBhVWXhMZhL7XQaj3fN29piQC+NYnXqNoqpa++CeZv4kNtdl2U+YLyg==}
 
   '@sindresorhus/is@4.6.0':
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
@@ -952,6 +961,11 @@ packages:
     resolution: {integrity: sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A==}
     engines: {node: '>=6'}
 
+  scriptc@0.0.23:
+    resolution: {integrity: sha512-KPqUNkncfcYJ+UMYENr+e5pKi1EZeesveZdyjmj0PnX3oB5f6Y7HAKDfgaUubRbfWGE8LcZDEweC4VeCYUqYGg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   semver@7.8.5:
     resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
     engines: {node: '>=10'}
@@ -1052,6 +1066,11 @@ packages:
 
   typescript@5.6.1-rc:
     resolution: {integrity: sha512-E3b2+1zEFu84jB0YQi9BORDjz9+jGbwwy1Zi3G0LUNw7a7cePUrHMRNy8aPh53nXpkFGVHSxIZo5vKTfYaFiBQ==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -1340,6 +1359,14 @@ snapshots:
     optional: true
 
   '@rolldown/pluginutils@1.0.1': {}
+
+  '@scriptc/compiler@0.0.23':
+    dependencies:
+      '@scriptc/runtime': 0.0.23
+      typescript: 7.0.2
+      typescript5: typescript@5.9.3
+
+  '@scriptc/runtime@0.0.23': {}
 
   '@sindresorhus/is@4.6.0': {}
 
@@ -1855,6 +1882,10 @@ snapshots:
     dependencies:
       mri: 1.2.0
 
+  scriptc@0.0.23:
+    dependencies:
+      '@scriptc/compiler': 0.0.23
+
   semver@7.8.5: {}
 
   siginfo@2.0.0: {}
@@ -1937,6 +1968,8 @@ snapshots:
       - vue-tsc
 
   typescript@5.6.1-rc: {}
+
+  typescript@5.9.3: {}
 
   typescript@7.0.2:
     optionalDependencies:

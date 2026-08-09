@@ -30,6 +30,8 @@ describe("gyazoctl argument parser", () => {
     expect(parseCli(["search", "cat"])).toEqual({
       kind: "search",
       query: "cat",
+      page: undefined,
+      perPage: undefined,
     });
     expect(parseCli(["me"])).toEqual({ kind: "me" });
     expect(parseCli(["oembed", "https://gyazo.com/abc123"])).toEqual({

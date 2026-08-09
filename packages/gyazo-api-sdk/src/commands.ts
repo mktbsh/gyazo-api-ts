@@ -26,6 +26,7 @@ import type {
   ListImagesOutput,
   SearchImagesInput,
   SearchImagesOutput,
+  UploadImageBytesInput,
   UploadImageInput,
 } from "./types";
 
@@ -85,6 +86,22 @@ const createUploadImageCommand = defineGyazoJsonCommand<
   transform: parseUpload,
 });
 
+const createUploadImageBytesCommand = defineGyazoJsonCommand<
+  UploadImageBytesInput,
+  GyazoUpload
+>({
+  build: (input) => {
+    const multipart = multipartBody(input);
+    return {
+      method: "POST",
+      url: "/api/upload",
+      headers: { "content-type": multipart.contentType },
+      body: multipart.body,
+    };
+  },
+  transform: parseUpload,
+});
+
 const createDeleteImageCommand = defineGyazoJsonCommand<
   DeleteImageInput,
   DeleteImageOutput
@@ -124,6 +141,11 @@ export const getImage: (input: GetImageInput) => GyazoCommand<GyazoImage> = (
 export const uploadImage: (
   input: UploadImageInput,
 ) => GyazoCommand<GyazoUpload> = (input) => createUploadImageCommand(input);
+
+export const uploadImageBytes: (
+  input: UploadImageBytesInput,
+) => GyazoCommand<GyazoUpload> = (input) =>
+  createUploadImageBytesCommand(input);
 
 export const deleteImage: (
   input: DeleteImageInput,
@@ -171,13 +193,68 @@ function uploadBody(input: UploadImageInput): FormData {
   set(form, "title", input.title);
   set(form, "desc", input.desc);
   set(form, "collection_id", input.collectionId);
-  if (input.createdAt !== undefined) {
-    if (!Number.isInteger(input.createdAt) || input.createdAt < 0) {
-      throw new RangeError("createdAt must be a non-negative integer");
-    }
-    form.set("created_at", String(input.createdAt));
-  }
+  set(form, "created_at", createdAt(input.createdAt));
   return form;
+}
+
+function multipartBody(input: UploadImageBytesInput): Readonly<{
+  body: Uint8Array<ArrayBuffer>;
+  contentType: string;
+}> {
+  if (!(input.image instanceof Uint8Array)) {
+    throw new TypeError("image must be a Uint8Array");
+  }
+  const boundary = `----gyazo-${Date.now().toString(16)}-${input.image.byteLength}`;
+  const filename = nonEmpty(input.filename, "filename").replace(
+    /[\r\n"]/g,
+    "_",
+  );
+  const fields: ReadonlyArray<
+    Readonly<[string, string | boolean | undefined]>
+  > = [
+    ["access_policy", input.accessPolicy],
+    ["metadata_is_public", input.metadataIsPublic],
+    ["referer_url", input.refererUrl],
+    ["app", input.app],
+    ["title", input.title],
+    ["desc", input.desc],
+    ["collection_id", input.collectionId],
+    ["created_at", createdAt(input.createdAt)],
+  ];
+  const encoder = new TextEncoder();
+  const chunks: Uint8Array[] = [
+    encoder.encode(
+      `--${boundary}\r\nContent-Disposition: form-data; name="imagedata"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`,
+    ),
+    input.image,
+    encoder.encode("\r\n"),
+  ];
+  for (const [name, value] of fields) {
+    if (value === undefined) continue;
+    chunks.push(
+      encoder.encode(
+        `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${String(value)}\r\n`,
+      ),
+    );
+  }
+  chunks.push(encoder.encode(`--${boundary}--\r\n`));
+  const body: Uint8Array<ArrayBuffer> = new Uint8Array(
+    chunks.reduce((size, chunk) => size + chunk.byteLength, 0),
+  );
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return { body, contentType: `multipart/form-data; boundary=${boundary}` };
+}
+
+function createdAt(value: number | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  if (!Number.isInteger(value) || value < 0) {
+    throw new RangeError("createdAt must be a non-negative integer");
+  }
+  return String(value);
 }
 
 function set(

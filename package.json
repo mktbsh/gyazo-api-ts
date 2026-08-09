@@ -6,6 +6,7 @@
   "scripts": {
     "build": "pnpm --recursive run build",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test:coverage && pnpm run build",
+    "check:native": "pnpm --filter gyazoctl run check:native && pnpm --filter gyazoctl run build:native && node scripts/native-smoke.mjs packages/gyazoctl/dist/native/gyazoctl",
     "format": "biome check . --write",
     "lint": "biome check .",
     "test": "vitest run",
@@ -18,6 +19,7 @@
     "@types/node": "26.2.0",
     "@vitest/coverage-v8": "4.1.10",
     "publint": "0.3.23",
+    "scriptc": "0.0.23",
     "tsdown": "0.22.14",
     "typescript": "7.0.2",
     "vitest": "4.1.10"

@@ -90,6 +90,19 @@ export type UploadImageInput = Readonly<{
   collectionId?: string;
 }>;
 
+export type UploadImageBytesInput = Readonly<{
+  image: Uint8Array;
+  filename: string;
+  accessPolicy?: GyazoAccessPolicy | undefined;
+  metadataIsPublic?: boolean | undefined;
+  refererUrl?: string | undefined;
+  app?: string | undefined;
+  title?: string | undefined;
+  desc?: string | undefined;
+  createdAt?: number | undefined;
+  collectionId?: string | undefined;
+}>;
+
 export type DeleteImageInput = Readonly<{ imageId: string }>;
 
 export type DeleteImageOutput = Readonly<{
