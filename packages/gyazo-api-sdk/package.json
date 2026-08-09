@@ -1,0 +1,46 @@
+{
+  "name": "gyazo-api-sdk",
+  "version": "0.1.0",
+  "description": "Typed Gyazo API SDK built on @hsblabs/http-command",
+  "type": "module",
+  "license": "MIT",
+  "author": "mktbsh",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mktbsh/gyazo-api-sdk.git",
+    "directory": "packages/gyazo-api-sdk"
+  },
+  "homepage": "https://github.com/mktbsh/gyazo-api-sdk/tree/main/packages/gyazo-api-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/mktbsh/gyazo-api-sdk/issues"
+  },
+  "keywords": [
+    "gyazo",
+    "api",
+    "sdk",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "pnpm run build"
+  },
+  "dependencies": {
+    "@hsblabs/http-command": "^0.1.1"
+  }
+}

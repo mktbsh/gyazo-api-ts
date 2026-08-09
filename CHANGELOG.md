@@ -1,11 +1,6 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
 ## Unreleased
 
-- Add direct client methods while preserving the command API.
-- Add search, current-user, and oEmbed API support.
-- Correct image response types and pagination metadata.
-- Add typed validation, timeout, response, and API errors.
-- Add tests, CI, release automation, and package-consumer verification.
+- Rename the unpublished SDK from `@mktbsh/gyazo-api` to `gyazo-api-sdk`.
+- Rebuild the SDK on `@hsblabs/http-command` in a pnpm workspace.
