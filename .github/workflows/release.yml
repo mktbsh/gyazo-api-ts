@@ -41,11 +41,21 @@ jobs:
       matrix:
         include:
           - runner: macos-15
+            os: darwin
             arch: arm64
             file-arch: arm64
           - runner: macos-15-intel
+            os: darwin
             arch: x64
             file-arch: x86_64
+          - runner: ubuntu-24.04-arm
+            os: linux
+            arch: arm64
+            file-arch: aarch64
+          - runner: ubuntu-24.04
+            os: linux
+            arch: x64
+            file-arch: x86-64
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -62,6 +72,7 @@ jobs:
         env:
           ARCH: ${{ matrix.arch }}
           EXPECTED_FILE_ARCH: ${{ matrix.file-arch }}
+          OS: ${{ matrix.os }}
           TAG: ${{ github.ref_name }}
         run: |
           version="${TAG#v}"
@@ -70,13 +81,20 @@ jobs:
           node scripts/native-smoke.mjs packages/gyazoctl/dist/native/gyazoctl "$version"
           file packages/gyazoctl/dist/native/gyazoctl | grep -q "$EXPECTED_FILE_ARCH"
           mkdir -p .context/release
-          archive=".context/release/gyazoctl-darwin-${ARCH}.tar.gz"
+          archive=".context/release/gyazoctl-${OS}-${ARCH}.tar.gz"
           tar -C packages/gyazoctl/dist/native -czf "$archive" gyazoctl
-          cd .context/release
-          shasum -a 256 "gyazoctl-darwin-${ARCH}.tar.gz" > "gyazoctl-darwin-${ARCH}.tar.gz.sha256"
+          (
+            cd .context/release
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "gyazoctl-${OS}-${ARCH}.tar.gz" > "gyazoctl-${OS}-${ARCH}.tar.gz.sha256"
+            else
+              shasum -a 256 "gyazoctl-${OS}-${ARCH}.tar.gz" > "gyazoctl-${OS}-${ARCH}.tar.gz.sha256"
+            fi
+          )
+          sh scripts/install-smoke.sh "$archive" "$version"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
         with:
-          name: gyazoctl-darwin-${{ matrix.arch }}
+          name: gyazoctl-${{ matrix.os }}-${{ matrix.arch }}
           path: .context/release/*
           if-no-files-found: error
 
@@ -121,9 +139,10 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v4.3.0
         with:
-          pattern: gyazoctl-darwin-*
+          pattern: gyazoctl-*
           path: .context/release
           merge-multiple: true
       - name: Create GitHub Release
@@ -132,9 +151,9 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" .context/release/* --clobber
+            gh release upload "$TAG" .context/release/* install.sh --clobber
           else
-            gh release create "$TAG" .context/release/* --verify-tag --generate-notes
+            gh release create "$TAG" .context/release/* install.sh --verify-tag --generate-notes
           fi
 
   homebrew:
@@ -144,7 +163,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v4.3.0
         with:
-          pattern: gyazoctl-darwin-*
+          pattern: gyazoctl-*
           path: .context/release
           merge-multiple: true
       - name: Render and audit Formula
@@ -153,13 +172,15 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           version="${TAG#v}"
-          arm64_sha="$(shasum -a 256 .context/release/gyazoctl-darwin-arm64.tar.gz | awk '{print $1}')"
-          x64_sha="$(shasum -a 256 .context/release/gyazoctl-darwin-x64.tar.gz | awk '{print $1}')"
+          darwin_arm64_sha="$(shasum -a 256 .context/release/gyazoctl-darwin-arm64.tar.gz | awk '{print $1}')"
+          darwin_x64_sha="$(shasum -a 256 .context/release/gyazoctl-darwin-x64.tar.gz | awk '{print $1}')"
+          linux_arm64_sha="$(shasum -a 256 .context/release/gyazoctl-linux-arm64.tar.gz | awk '{print $1}')"
+          linux_x64_sha="$(shasum -a 256 .context/release/gyazoctl-linux-x64.tar.gz | awk '{print $1}')"
           gh auth setup-git
           gh repo clone mktbsh/homebrew-tap .context/homebrew-tap
           git -C .context/homebrew-tap config user.name github-actions[bot]
           git -C .context/homebrew-tap config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          node scripts/render-formula.mjs "$version" "$arm64_sha" "$x64_sha" .context/homebrew-tap/Formula/gyazoctl.rb
+          node scripts/render-formula.mjs "$version" "$darwin_arm64_sha" "$darwin_x64_sha" "$linux_arm64_sha" "$linux_x64_sha" .context/homebrew-tap/Formula/gyazoctl.rb
           git -C .context/homebrew-tap add Formula/gyazoctl.rb
           if ! git -C .context/homebrew-tap diff --cached --quiet; then
             git -C .context/homebrew-tap commit -m "gyazoctl $version"

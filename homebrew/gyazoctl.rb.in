@@ -3,17 +3,29 @@ class Gyazoctl < Formula
   homepage "https://github.com/mktbsh/gyazo-api-sdk"
   license "MIT"
 
-  depends_on macos: :ventura
-
   on_macos do
+    depends_on macos: :ventura
+
     on_arm do
       url "https://github.com/mktbsh/gyazo-api-sdk/releases/download/v__VERSION__/gyazoctl-darwin-arm64.tar.gz"
-      sha256 "__ARM64_SHA256__"
+      sha256 "__DARWIN_ARM64_SHA256__"
     end
 
     on_intel do
       url "https://github.com/mktbsh/gyazo-api-sdk/releases/download/v__VERSION__/gyazoctl-darwin-x64.tar.gz"
-      sha256 "__X64_SHA256__"
+      sha256 "__DARWIN_X64_SHA256__"
+    end
+  end
+
+  on_linux do
+    on_arm do
+      url "https://github.com/mktbsh/gyazo-api-sdk/releases/download/v__VERSION__/gyazoctl-linux-arm64.tar.gz"
+      sha256 "__LINUX_ARM64_SHA256__"
+    end
+
+    on_intel do
+      url "https://github.com/mktbsh/gyazo-api-sdk/releases/download/v__VERSION__/gyazoctl-linux-x64.tar.gz"
+      sha256 "__LINUX_X64_SHA256__"
     end
   end
 

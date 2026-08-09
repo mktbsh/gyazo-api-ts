@@ -1,6 +1,6 @@
 # gyazoctl
 
-Gyazo API のコマンドラインクライアントです。Node.js 20 以降が必要です。
+Gyazo API のコマンドラインクライアントです。npm 版は Node.js 20 以降、native 版は macOS 13 以降または Linux で動作します。
 
 ## Installation
 
@@ -11,11 +11,19 @@ npx gyazoctl --help
 pnpm add --global gyazoctl
 ```
 
-Homebrew（macOS 13 以降、native binary）:
+Homebrew（macOS/Linux、native binary）:
 
 ```sh
 brew install mktbsh/tap/gyazoctl
 ```
+
+Install script（macOS/Linux、native binary）:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/mktbsh/gyazo-api-sdk/main/install.sh | sh
+```
+
+既定の導入先は `~/.local/bin` です。version は `GYAZOCTL_VERSION`、導入先は `GYAZOCTL_INSTALL_DIR` で指定できます。
 
 ## Authentication
 

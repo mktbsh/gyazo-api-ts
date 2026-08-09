@@ -19,14 +19,14 @@ date: 2026-08-09T22:48:44+09:00
 
 `release.yml` は検証後に次の順で公開する。
 
-1. macOS arm64/x64 native binary を build し、binary version と tag を照合する。
+1. macOS/Linux arm64/x64 native binary を各 platform の runner で build し、binary version と tag を照合する。
 2. neutral basename `gyazoctl` を architecture 別 tarball にし、SHA-256 checksum を作る。
 3. `gyazo-api-sdk`、`gyazoctl` を npm へ provenance 付きで公開する。
-4. tarball と checksum を GitHub Release へ公開する。
-5. checksum から `Formula/gyazoctl.rb` を生成し、audit/install/version test 後に `mktbsh/homebrew-tap` へ push する。
+4. tarball、checksum、`install.sh` を GitHub Release へ公開する。
+5. 4 platform の checksum から `Formula/gyazoctl.rb` を生成し、audit/install/version test 後に `mktbsh/homebrew-tap` へ push する。
 
 ## Failure and rollback
 
 Workflow は npm publish が成功するまで GitHub Release と Formula を更新しない。途中失敗は同じ tag の workflow rerun で再開でき、既に存在する npm version は skip される。
 
-公開後に native artifact の問題が判明した場合は GitHub Release を pre-release として明示し、Homebrew Formula を直前の正常 version と checksum へ戻す。npm package は削除せず `npm deprecate` で問題 version を案内し、修正版を新しい version として公開する。
+公開後に native artifact の問題が判明した場合は GitHub Release を pre-release として明示し、Homebrew Formula を直前の正常 version と checksum へ戻す。`install.sh` は GitHub Release の変更に追従するため、問題 asset は削除せず修正版を新しい version として公開する。npm package は削除せず `npm deprecate` で問題 version を案内する。
