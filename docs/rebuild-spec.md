@@ -8,7 +8,7 @@ status: accepted
 
 ## Goal
 
-未公開の `@mktbsh/gyazo-api` を `gyazo-api-sdk` へ改名し、`@hsblabs/http-command` の scoped command protocol を使う pnpm workspace として再構築する。Phase 2 で `gyazoctl` を同じ workspace に追加する。
+未公開の `@mktbsh/gyazo-api` を `gyazo-api-sdk` へ改名し、`@hsblabs/http-command` の scoped command protocol を使う pnpm workspace として再構築する。Phase 2 で `gyazoctl` を同じ workspace に追加し、Phase 3 で npm と Homebrew の配布経路を作る。
 
 ## Phase 1: SDK
 
@@ -25,13 +25,25 @@ status: accepted
 - `packages/gyazoctl` に配置する。
 - `GYAZO_ACCESS_TOKEN` で認証し、`list`、`get`、`upload`、`delete`、`search`、`me`、`oembed` を提供する。
 - 成功結果は JSON で標準出力へ、エラーは標準エラー出力へ出し、失敗時は終了コード 1 とする。
-- 引数解析には Node.js 標準の `parseArgs` を使い、CLI フレームワークは追加しない。
+- 引数解析は依存を追加せず、Node.js と native binary の両方で同じ parser を使う。
+
+## Phase 3: native distribution
+
+- `scriptc --dynamic` で `gyazoctl` の TypeScript source から macOS arm64/x64 native executable を作る。
+- native executable は Node.js を要求せず、npm CLI と同じ command、環境変数、stdout/stderr、終了コードを保つ。
+- GitHub Release asset は `gyazoctl-darwin-arm64.tar.gz` と `gyazoctl-darwin-x64.tar.gz` とし、各 archive 内の executable 名は `gyazoctl` に統一する。
+- npm では `gyazo-api-sdk` と `gyazoctl` を公開し、`npx gyazoctl` を提供する。
+- `mktbsh/homebrew-tap` の `Formula/gyazoctl.rb` を release workflow から更新し、`brew install mktbsh/tap/gyazoctl` を提供する。
+- tag、両 package version、native binary version は一致させる。
+- npm Trusted Publisher または `NPM_TOKEN` と、tap 更新用 `HOMEBREW_TAP_TOKEN` を公開前提とする。
 
 ## Acceptance
 
 - `pnpm install --frozen-lockfile` が成功する。
 - `pnpm run check` が成功する。
+- `pnpm run check:native` が成功し、scriptc coverage に blocker が残らない。
 - 両パッケージの tarball が作成でき、`publint` と `attw` を通る。
-- `gyazoctl --help` とビルド済み CLI の最小実行確認が成功する。
+- npm tarball の `npx gyazoctl` と native binary の help、version、引数検証、削除 safety check が成功する。
+- release workflow が 2 architecture の archive/checksum、npm publish、GitHub Release、Homebrew Formula 更新を順に実行する。
 
-公開、push、PR 作成はこの再構築の範囲外とする。
+公開用 workflow と Formula template の作成は範囲内とする。tag 作成、push、npm/GitHub/Homebrew への実公開は別の明示操作とする。

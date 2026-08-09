@@ -4,8 +4,17 @@ Gyazo API のコマンドラインクライアントです。Node.js 20 以降�
 
 ## Installation
 
+npm:
+
 ```sh
+npx gyazoctl --help
 pnpm add --global gyazoctl
+```
+
+Homebrew（macOS 13 以降、native binary）:
+
+```sh
+brew install mktbsh/tap/gyazoctl
 ```
 
 ## Authentication

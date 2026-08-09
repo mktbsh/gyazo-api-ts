@@ -12,3 +12,8 @@ date: 2026-08-09T21:56:53+09:00
 - [x] T5: `gyazoctl` の引数 parser を作る（blocked by T4）
 - [x] T6: `gyazoctl` の実行 Action と package metadata を作る（blocked by T5）
 - [x] T7: workspace 全体と tarball を検証する（blocked by T6）
+- [x] T8: scriptc と Perry を実機比較して native compiler を決定する（blocked by T7）
+- [x] T9: scriptc native build と CLI runtime smoke を通す（blocked by T8）
+- [x] T10: native release asset と npm publish workflow を作る（blocked by T9）
+- [x] T11: Homebrew Formula renderer と tap 更新 job を作る（blocked by T10）
+- [x] T12: package docs、release prerequisites、全配布経路を検証する（blocked by T11）
