@@ -17,3 +17,6 @@ date: 2026-08-09T21:56:53+09:00
 - [x] T10: native release asset と npm publish workflow を作る（blocked by T9）
 - [x] T11: Homebrew Formula renderer と tap 更新 job を作る（blocked by T10）
 - [x] T12: package docs、release prerequisites、全配布経路を検証する（blocked by T11）
+- [ ] T13: Linux arm64/x64 native build と release asset を追加する（blocked by T12）
+- [ ] T14: `install.sh` と実行 smoke check を追加する（blocked by T13）
+- [ ] T15: Linux 対応 Formula、release workflow、配布文書を検証する（blocked by T14）
