@@ -3,6 +3,14 @@ name: Release
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - ".vscode/**"
+      - ".github/ISSUE_TEMPLATE/**"
+      - "README.md"
+      - "packages/*/README.md"
+      - "CHANGELOG.md"
+      - "TASKS.md"
 
 concurrency:
   group: release
