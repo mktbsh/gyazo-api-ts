@@ -15,7 +15,7 @@ import {
 } from "gyazo-api-sdk";
 import { type CliCommand, helpText, parseCli } from "./cli";
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 
 async function main(): Promise<void> {
   const command = parseCli(process.argv.slice(2));

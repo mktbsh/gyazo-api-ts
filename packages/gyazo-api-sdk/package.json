@@ -1,6 +1,6 @@
 {
   "name": "gyazo-api-sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Typed Gyazo API SDK built on @hsblabs/http-command",
   "type": "module",
   "license": "MIT",
