@@ -89,7 +89,7 @@ jobs:
           done
           assets="$(gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>/dev/null || true)"
           for os in darwin linux; do
-            for arch in arm64 x64; do
+            for arch in arm64 amd64; do
               for suffix in tar.gz tar.gz.sha256; do
                 if ! grep -qx "gyazoctl-$os-$arch.$suffix" <<< "$assets"; then
                   echo "should_release=true" >> "$GITHUB_OUTPUT"
@@ -113,7 +113,7 @@ jobs:
             file-arch: arm64
           - runner: macos-15-intel
             os: darwin
-            arch: x64
+            arch: amd64
             file-arch: x86_64
           - runner: ubuntu-24.04-arm
             os: linux
@@ -121,7 +121,7 @@ jobs:
             file-arch: aarch64
           - runner: ubuntu-24.04
             os: linux
-            arch: x64
+            arch: amd64
             file-arch: x86-64
     runs-on: ${{ matrix.runner }}
     steps:
@@ -158,6 +158,7 @@ jobs:
               shasum -a 256 "gyazoctl-$OS-$ARCH.tar.gz" > "gyazoctl-$OS-$ARCH.tar.gz.sha256"
             fi
           )
+          sh scripts/install-smoke.sh "$archive" "$VERSION"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
         with:
           name: gyazoctl-${{ matrix.os }}-${{ matrix.arch }}

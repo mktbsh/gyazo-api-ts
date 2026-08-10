@@ -6,6 +6,8 @@ agent: OpenAI Codex GPT-5
 amends:
   - 0002-native-distribution.md
   - 0003-linux-native-distribution.md
+amended_by:
+  - 0006-maltmill-formula-management.md
 ---
 
 # Distribute gyazoctl through a tap-owned Homebrew Formula
@@ -17,7 +19,7 @@ macOS利用者へ`gyazoctl`のnative binaryをHomebrewで配布する。`gyazo-a
 ## Decision
 
 - `mktbsh/homebrew-tap`でCaskではなくFormulaとして配布する。
-- 初回FormulaはmacOS Ventura以降のarm64/x64を対象とし、Linuxは古いglibcとの互換性を確保してから追加する。
+- 初回FormulaはmacOS Ventura以降のarm64/amd64を対象とし、Linuxは古いglibcとの互換性を確保してから追加する。
 - tap側のscheduled workflowが毎日、`mktbsh/gyazo-api-sdk`の最新non-prereleaseを確認する。
 - 新しいversionを検出した場合だけ、macOS archiveとchecksumを取得・検証し、Formulaを生成する。
 - Formulaのaudit、install、testがすべて成功した後、tap自身の`GITHUB_TOKEN`で`main`へcommitする。

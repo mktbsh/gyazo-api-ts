@@ -1,7 +1,7 @@
 ---
 title: gyazo-api-sdk rebuild specification
 date: 2026-08-09T21:56:53+09:00
-updated: 2026-08-10T22:22:15+09:00
+updated: 2026-08-10T22:53:17+09:00
 status: accepted
 ---
 
@@ -30,9 +30,9 @@ status: accepted
 
 ## Phase 3: Changesets release
 
-- `scriptc --dynamic` で `gyazoctl` の TypeScript source から macOS/Linux arm64/x64 native executable を作る。
+- `scriptc --dynamic` で `gyazoctl` の TypeScript source から macOS/Linux arm64/amd64 native executable を作る。
 - native executable は Node.js を要求せず、npm CLI と同じ command、環境変数、stdout/stderr、終了コードを保つ。
-- GitHub Release asset は `gyazoctl-{darwin,linux}-{arm64,x64}.tar.gz` とし、各 archive 内の executable 名は `gyazoctl` に統一する。
+- GitHub Release asset は `gyazoctl-{darwin,linux}-{arm64,amd64}.tar.gz` とし、各 archive 内の executable 名は `gyazoctl` に統一する。
 - Changesets fixed group で `gyazo-api-sdk` と `gyazoctl` を同時に versioning し、npm へ公開する。
 - npm publish は GitHub Actions Trusted Publishing の OIDC だけを使う。
 - 両 package の npm publish 後、同じ version の `v*` GitHub Release に4 platformのarchiveとchecksumを添付する。
@@ -41,9 +41,9 @@ status: accepted
 
 ## Phase 4: Convenience distribution
 
-- repository rootの`install.sh`でmacOS/Linux arm64/x64 binaryを`~/.local/bin`へ導入する。
-- macOS Ventura以降では`mktbsh/homebrew-tap`のFormulaとしてarm64/x64 binaryを配布する。
-- tap側のscheduled workflowが最新non-prereleaseを検知し、Formulaをaudit、install、testしてから更新する。
+- repository rootの`install.sh`でmacOS/Linux arm64/amd64 binaryを`~/.local/bin`へ導入する。
+- macOS Ventura以降では`mktbsh/homebrew-tap`のFormulaとしてarm64/amd64 binaryを配布する。
+- tap側のscheduled workflowがmaltmillで最新non-prereleaseを検知し、Formulaをaudit、install、testしてから更新する。
 - `gyazo-api-sdk`からtapへ書き込むcredentialは保持しない。
 - Linux Formulaはglibc 2.38未満との互換性を確保してから追加する。
 
@@ -55,7 +55,7 @@ status: accepted
 - 両パッケージの tarball が作成でき、`publint` と `attw` を通る。
 - npm tarball の `npx gyazoctl` と native binary の help、version、引数検証、削除 safety check が成功する。
 - Changesets が両 package を同じ version に更新し、SDK、CLI の順に OIDC publish する。
-- release workflow が macOS/Linux arm64/x64 のarchive/checksumを同じ `v*` GitHub Releaseへ添付する。
+- release workflow が macOS/Linux arm64/amd64 のarchive/checksumを同じ `v*` GitHub Releaseへ添付する。
 - 途中失敗の再実行では公開済みnpm versionを再publishせず、不足するRelease assetを補完する。
 - `install.sh`がchecksumとversionを検証してnative binaryを導入する。
 - tap側workflowがFormulaを生成し、`brew audit`、`brew install`、`brew test`に成功する。

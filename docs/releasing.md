@@ -1,7 +1,7 @@
 ---
 title: Release gyazo-api-sdk and gyazoctl
 date: 2026-08-09T22:48:44+09:00
-updated: 2026-08-10T22:22:15+09:00
+updated: 2026-08-10T22:53:17+09:00
 ---
 
 # Release gyazo-api-sdk and gyazoctl
@@ -26,12 +26,12 @@ updated: 2026-08-10T22:22:15+09:00
 
 1. Changesets fixed groupが両packageとCLI sourceを同じversionへ更新する。
 2. `gyazo-api-sdk`、`gyazoctl`をnpm Trusted PublishingのOIDCで公開する。
-3. macOS/Linux arm64/x64 native binaryを各platformのrunnerでbuildする。
-4. `gyazoctl-{darwin,linux}-{arm64,x64}.tar.gz`とchecksumを`v*` GitHub Releaseへ公開する。
+3. macOS/Linux arm64/amd64 native binaryを各platformのrunnerでbuildする。
+4. `gyazoctl-{darwin,linux}-{arm64,amd64}.tar.gz`とchecksumを`v*` GitHub Releaseへ公開する。
 
 ## Homebrew
 
-`mktbsh/homebrew-tap`のscheduled workflowが毎日、最新のnon-prereleaseを確認する。新しいversionを検出するとmacOS arm64/x64 assetのchecksumを検証し、Formulaのaudit、install、test後にtapの`main`へcommitする。
+`mktbsh/homebrew-tap`のscheduled workflowが毎日、maltmillで最新のnon-prereleaseを確認する。新しいversionを検出するとmacOS arm64/amd64 assetのchecksumを更新し、Formulaのaudit、install、test後にtapの`main`へcommitする。
 
 即時反映が必要な場合は`mktbsh/homebrew-tap`の`Update gyazoctl Formula` workflowを手動実行する。`gyazo-api-sdk`側にtap更新用tokenやsecretは設定しない。
 

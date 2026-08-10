@@ -29,7 +29,7 @@ Node.jsを必要としないmacOS binaryはHomebrewで導入できます。
 brew install mktbsh/tap/gyazoctl
 ```
 
-macOS/Linux arm64/x64 binaryはinstall scriptでも導入できます。
+macOS/Linux arm64/amd64 binaryはinstall scriptでも導入できます。
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/mktbsh/gyazo-api-sdk/main/install.sh | sh
