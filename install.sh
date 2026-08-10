@@ -77,5 +77,8 @@ printf 'Installed gyazoctl %s to %s/gyazoctl\n' "$actual_version" "$install_dir"
 
 case ":${PATH:-}:" in
   *":$install_dir:"*) ;;
-  *) printf 'Add %s to PATH.\n' "$install_dir" ;;
+  *)
+    printf 'gyazoctl: warning: %s is not in PATH\n' "$install_dir" >&2
+    printf 'Add this line to your shell profile:\n  export PATH="%s:$PATH"\n' "$install_dir" >&2
+    ;;
 esac
