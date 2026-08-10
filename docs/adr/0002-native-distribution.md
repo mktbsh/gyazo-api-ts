@@ -3,7 +3,9 @@ title: Build gyazoctl native releases with scriptc
 date: 2026-08-09T22:48:44+09:00
 status: accepted
 agent: OpenAI Codex GPT-5
-amended_by: 0004-changesets-release.md
+amended_by:
+  - 0004-changesets-release.md
+  - 0005-homebrew-formula-distribution.md
 ---
 
 # Build gyazoctl native releases with scriptc

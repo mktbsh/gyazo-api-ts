@@ -1,7 +1,7 @@
 ---
 title: gyazo-api-sdk rebuild specification
 date: 2026-08-09T21:56:53+09:00
-updated: 2026-08-10T08:37:18+09:00
+updated: 2026-08-10T22:22:15+09:00
 status: accepted
 ---
 
@@ -37,7 +37,15 @@ status: accepted
 - npm publish は GitHub Actions Trusted Publishing の OIDC だけを使う。
 - 両 package の npm publish 後、同じ version の `v*` GitHub Release に4 platformのarchiveとchecksumを添付する。
 - tag、両 package version、native binary version は一致させる。
-- install script と Homebrew Formula は scope 外とする。
+- install script と Homebrew Formula は `gyazo-api-sdk` release workflow の scope 外とする。
+
+## Phase 4: Convenience distribution
+
+- repository rootの`install.sh`でmacOS/Linux arm64/x64 binaryを`~/.local/bin`へ導入する。
+- macOS Ventura以降では`mktbsh/homebrew-tap`のFormulaとしてarm64/x64 binaryを配布する。
+- tap側のscheduled workflowが最新non-prereleaseを検知し、Formulaをaudit、install、testしてから更新する。
+- `gyazo-api-sdk`からtapへ書き込むcredentialは保持しない。
+- Linux Formulaはglibc 2.38未満との互換性を確保してから追加する。
 
 ## Acceptance
 
@@ -49,5 +57,7 @@ status: accepted
 - Changesets が両 package を同じ version に更新し、SDK、CLI の順に OIDC publish する。
 - release workflow が macOS/Linux arm64/x64 のarchive/checksumを同じ `v*` GitHub Releaseへ添付する。
 - 途中失敗の再実行では公開済みnpm versionを再publishせず、不足するRelease assetを補完する。
+- `install.sh`がchecksumとversionを検証してnative binaryを導入する。
+- tap側workflowがFormulaを生成し、`brew audit`、`brew install`、`brew test`に成功する。
 
 公開用 workflow の作成は範囲内とする。push、npm、GitHub Releases への実公開は別の明示操作とする。

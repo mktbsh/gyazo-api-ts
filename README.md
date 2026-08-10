@@ -23,7 +23,13 @@ Node.js がある環境では npm 版を直接実行できます。
 npx gyazoctl --help
 ```
 
-Node.js を必要としない macOS/Linux arm64/x64 binary は install script で導入できます。
+Node.jsを必要としないmacOS binaryはHomebrewで導入できます。
+
+```sh
+brew install mktbsh/tap/gyazoctl
+```
+
+macOS/Linux arm64/x64 binaryはinstall scriptでも導入できます。
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/mktbsh/gyazo-api-sdk/main/install.sh | sh

@@ -1,7 +1,7 @@
 ---
 title: Release gyazo-api-sdk and gyazoctl
 date: 2026-08-09T22:48:44+09:00
-updated: 2026-08-10T08:37:18+09:00
+updated: 2026-08-10T22:22:15+09:00
 ---
 
 # Release gyazo-api-sdk and gyazoctl
@@ -29,8 +29,16 @@ updated: 2026-08-10T08:37:18+09:00
 3. macOS/Linux arm64/x64 native binaryを各platformのrunnerでbuildする。
 4. `gyazoctl-{darwin,linux}-{arm64,x64}.tar.gz`とchecksumを`v*` GitHub Releaseへ公開する。
 
+## Homebrew
+
+`mktbsh/homebrew-tap`のscheduled workflowが毎日、最新のnon-prereleaseを確認する。新しいversionを検出するとmacOS arm64/x64 assetのchecksumを検証し、Formulaのaudit、install、test後にtapの`main`へcommitする。
+
+即時反映が必要な場合は`mktbsh/homebrew-tap`の`Update gyazoctl Formula` workflowを手動実行する。`gyazo-api-sdk`側にtap更新用tokenやsecretは設定しない。
+
 ## Failure and rollback
 
 Workflowは両npm packageのversionを確認できるまでnative buildを開始しない。再実行時は公開済みnpm versionを再publishせず、8個のRelease assetが揃っていなければbinary buildから再開する。
 
 公開後に問題が判明した場合はnpm packageやassetを置換せず、`npm deprecate`で案内して修正版を新しいversionで公開する。
+
+Homebrew同期または検証に失敗した場合、Formulaは直前のversionを維持する。修正版のGitHub Releaseを公開した後、次回scheduled workflowまたは手動実行で追従させる。

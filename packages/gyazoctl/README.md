@@ -11,6 +11,12 @@ npx gyazoctl --help
 pnpm add --global gyazoctl
 ```
 
+Homebrew（macOS、native binary）:
+
+```sh
+brew install mktbsh/tap/gyazoctl
+```
+
 Install script（macOS/Linux、native binary）:
 
 ```sh

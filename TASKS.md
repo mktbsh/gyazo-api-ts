@@ -24,3 +24,5 @@ date: 2026-08-09T21:56:53+09:00
 - [x] T17: 両 npm package の OIDC publish workflow を作る（blocked by T16）
 - [x] T18: 4 platform binary を単一 GitHub Release へ添付する（blocked by T17）
 - [x] T19: Changesets、tarball、native、workflow を検証する（blocked by T18）
+- [x] T20: tap側のscheduled Formula同期を実装する（blocked by T19）
+- [x] T21: v0.1.0 Formulaと配布文書を検証する（blocked by T20）
