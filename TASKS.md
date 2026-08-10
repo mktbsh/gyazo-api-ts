@@ -26,5 +26,5 @@ date: 2026-08-09T21:56:53+09:00
 - [x] T19: Changesets、tarball、native、workflow を検証する（blocked by T18）
 - [x] T20: tap側のscheduled Formula同期を実装する（blocked by T19）
 - [x] T21: v0.1.0 Formulaと配布文書を検証する（blocked by T20）
-- [ ] T22: Intel release assetをamd64命名へ統一してv0.1.1を公開する（blocked by T21）
-- [ ] T23: v0.1.1 Formulaをbaselineにtapをmaltmillへ移行する（blocked by T22）
+- [x] T22: Intel release assetをamd64命名へ統一してv0.1.1を公開する（blocked by T21）
+- [x] T23: v0.1.1 Formulaをbaselineにtapをmaltmillへ移行する（blocked by T22）
