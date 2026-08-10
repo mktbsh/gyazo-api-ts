@@ -14,6 +14,10 @@ updated: 2026-08-10T08:37:18+09:00
 
 ## Release
 
+初回の`0.1.0` releaseだけは、両packageの`0.0.1` recordとTrusted Publisherを準備した後、changesetがない状態で`main`へpushする。Changesets Actionが現在の未公開versionを直接publishする。
+
+以後のreleaseは次の手順で行う。
+
 1. 公開対象の変更に `pnpm changeset` でchangesetを追加する。
 2. pull requestを`main`へmergeする。
 3. Release workflowが作成または更新する`chore: release packages` pull requestを確認してmergeする。
